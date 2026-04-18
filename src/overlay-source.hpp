@@ -5,6 +5,9 @@
 // Registra el tipo de source con OBS — llamar en obs_module_load
 void overlay_source_register();
 
+// Carga las fuentes bundleadas en Qt — llamar en obs_module_load
+void overlay_load_fonts();
+
 // Libera recursos gráficos — llamar en obs_module_unload
 void overlay_source_unload();
 

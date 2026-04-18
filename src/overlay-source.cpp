@@ -2,6 +2,7 @@
 
 #include <mutex>
 #include <string>
+#include <unordered_map>
 
 #include <obs-module.h>
 #include <obs-properties.h>
@@ -11,10 +12,12 @@
 
 #include <QColor>
 #include <QFont>
+#include <QFontDatabase>
 #include <QFontMetrics>
 #include <QImage>
 #include <QPainter>
 #include <QRectF>
+#include <QString>
 
 // ─────────────────────────────────────────────────────────────────────────────
 // Custom effect with opacity uniform (for fade)
@@ -80,6 +83,75 @@ static void ensure_fade_effect()
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
+// Available bundled Google Fonts
+// ─────────────────────────────────────────────────────────────────────────────
+struct FontDef {
+	const char *label;
+	const char *family;
+	const char *filename; // nullptr = system font (no file)
+};
+
+static const FontDef FONTS[] = {
+	{"Georgia (predeterminado)", "Georgia",         nullptr},
+	{"Nunito",                   "Nunito",           "Nunito-Regular.ttf"},
+	{"Roboto",                   "Roboto",           "Roboto-Regular.ttf"},
+	{"Open Sans",                "Open Sans",        "OpenSans-Regular.ttf"},
+	{"Lato",                     "Lato",             "Lato-Regular.ttf"},
+	{"Montserrat",               "Montserrat",       "Montserrat-Regular.ttf"},
+	{"Poppins",                  "Poppins",          "Poppins-Regular.ttf"},
+	{"Oswald",                   "Oswald",           "Oswald-Regular.ttf"},
+	{"Raleway",                  "Raleway",          "Raleway-Regular.ttf"},
+	{"Playfair Display",         "Playfair Display", "PlayfairDisplay-Regular.ttf"},
+	{"Merriweather",             "Merriweather",     "Merriweather-Regular.ttf"},
+};
+
+// Maps FontDef::family → actual Qt-registered family name (resolved at load time)
+static std::unordered_map<std::string, std::string> g_fontFamilyMap;
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Load bundled Google Fonts into Qt font database
+// ─────────────────────────────────────────────────────────────────────────────
+void overlay_load_fonts()
+{
+	for (const auto &f : FONTS) {
+		// System fonts need no file — register identity mapping
+		if (!f.filename) {
+			g_fontFamilyMap[f.family] = f.family;
+			continue;
+		}
+
+		std::string rel = std::string("fonts/") + f.filename;
+		const char *path = obs_module_file(rel.c_str());
+		if (!path) {
+			obs_log(LOG_WARNING, "Font file not found: %s", rel.c_str());
+			g_fontFamilyMap[f.family] = f.family;
+			continue;
+		}
+
+		int id = QFontDatabase::addApplicationFont(QString::fromUtf8(path));
+		bfree((void *)path);
+
+		if (id < 0) {
+			obs_log(LOG_WARNING, "Failed to load font: %s", f.filename);
+			g_fontFamilyMap[f.family] = f.family;
+			continue;
+		}
+
+		// Variable fonts may register under a different name than the family field
+		QStringList registered = QFontDatabase::applicationFontFamilies(id);
+		if (!registered.isEmpty()) {
+			std::string actual = registered.first().toStdString();
+			g_fontFamilyMap[f.family] = actual;
+			if (actual != f.family)
+				obs_log(LOG_INFO, "Font '%s' registered as '%s'",
+					f.family, actual.c_str());
+		} else {
+			g_fontFamilyMap[f.family] = f.family;
+		}
+	}
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
 // Shared verse state
 // ─────────────────────────────────────────────────────────────────────────────
 struct VerseState {
@@ -95,13 +167,14 @@ static VerseState g_state;
 // Per-instance settings (from OBS properties)
 // ─────────────────────────────────────────────────────────────────────────────
 struct OverlaySettings {
-	int    fontSize     = 38;       // pt at 1920px wide
-	QColor verseColor   = {255, 255, 255, 255};
-	QColor refColor     = {255, 224, 138, 255};
-	QColor bgColor      = {0,   0,   0,   145};
-	int    position     = 0;        // 0=bottom 1=center 2=top
-	int    textAlign    = 0;        // 0=left 1=center 2=right
-	float  fadeDuration = 0.4f;     // seconds
+	int         fontSize     = 38;       // pt at 1920px wide
+	std::string fontFamily   = "Georgia";
+	QColor      verseColor   = {255, 255, 255, 255};
+	QColor      refColor     = {255, 224, 138, 255};
+	QColor      bgColor      = {0,   0,   0,   145};
+	int         position     = 0;        // 0=bottom 1=center 2=top
+	int         textAlign    = 0;        // 0=left 1=center 2=right
+	float       fadeDuration = 0.4f;     // seconds
 };
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -148,8 +221,11 @@ static QImage renderVerseImage(const QString &text, const QString &ref,
 	else                      boxBottom = height * 0.92; // bottom
 
 	int scaledSize = s.fontSize * width / 1920;
-	QFont verseFont("Georgia", scaledSize);
-	QFont refFont("Georgia", scaledSize * 10 / 16);
+	auto it = g_fontFamilyMap.find(s.fontFamily);
+	QString ff = QString::fromStdString(
+		it != g_fontFamilyMap.end() ? it->second : s.fontFamily);
+	QFont verseFont(ff, scaledSize);
+	QFont refFont(ff, scaledSize * 10 / 16);
 
 	QFontMetrics verseFm(verseFont);
 	QFontMetrics refFm(refFont);
@@ -254,6 +330,8 @@ static void overlay_update(void *data, obs_data_t *settings)
 	OverlaySettings &s = inst->settings;
 
 	s.fontSize     = static_cast<int>(obs_data_get_int(settings, "font_size"));
+	const char *ff = obs_data_get_string(settings, "font_family");
+	s.fontFamily   = (ff && ff[0]) ? ff : "Georgia";
 	s.verseColor   = obsColorToQColor(obs_data_get_int(settings, "verse_color"));
 	s.refColor     = obsColorToQColor(obs_data_get_int(settings, "ref_color"));
 	s.bgColor      = obsColorToQColor(obs_data_get_int(settings, "bg_color"));
@@ -321,6 +399,11 @@ static obs_properties_t *overlay_get_properties(void *data)
 		obs_property_list_add_string(preset, p.label, p.id);
 	obs_property_set_modified_callback(preset, preset_changed);
 
+	obs_property_t *fontProp = obs_properties_add_list(props, "font_family",
+		"Fuente", OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+	for (const auto &f : FONTS)
+		obs_property_list_add_string(fontProp, f.label, f.family);
+
 	obs_properties_add_int_slider(props, "font_size",
 		"Tamaño de fuente", 12, 72, 1);
 
@@ -356,6 +439,7 @@ static obs_properties_t *overlay_get_properties(void *data)
 static void overlay_get_defaults(obs_data_t *settings)
 {
 	obs_data_set_default_string(settings, "preset",        "none");
+	obs_data_set_default_string(settings, "font_family",  "Georgia");
 	obs_data_set_default_int   (settings, "font_size",     38);
 	obs_data_set_default_int   (settings, "verse_color",   abgr(255,255,255,255)); // white
 	obs_data_set_default_int   (settings, "ref_color",     abgr(255,255,224,138)); // gold
@@ -415,12 +499,13 @@ static void overlay_video_render(void *data, gs_effect_t *)
 
 	// Rebuild texture on text or settings change
 	bool textChanged     = (snap.text != inst->lastText || snap.ref != inst->lastRef);
-	bool settingsChanged = (inst->settings.fontSize   != inst->lastSettings.fontSize ||
-				inst->settings.verseColor != inst->lastSettings.verseColor ||
-				inst->settings.refColor   != inst->lastSettings.refColor   ||
-				inst->settings.bgColor    != inst->lastSettings.bgColor    ||
-				inst->settings.position   != inst->lastSettings.position   ||
-				inst->settings.textAlign  != inst->lastSettings.textAlign);
+	bool settingsChanged = (inst->settings.fontSize    != inst->lastSettings.fontSize   ||
+				inst->settings.fontFamily  != inst->lastSettings.fontFamily  ||
+				inst->settings.verseColor  != inst->lastSettings.verseColor  ||
+				inst->settings.refColor    != inst->lastSettings.refColor    ||
+				inst->settings.bgColor     != inst->lastSettings.bgColor     ||
+				inst->settings.position    != inst->lastSettings.position    ||
+				inst->settings.textAlign   != inst->lastSettings.textAlign);
 
 	if ((textChanged || settingsChanged) && !snap.text.empty()) {
 		inst->lastText     = snap.text;

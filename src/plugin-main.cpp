@@ -124,6 +124,7 @@ bool obs_module_load()
 	if (path) { g_rv1909Path = path; bfree((void *)path); }
 
 	overlay_source_register();
+	overlay_load_fonts();
 	obs_frontend_add_event_callback(on_frontend_event, nullptr);
 	return true;
 }

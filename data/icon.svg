@@ -1,0 +1,32 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 256 256" width="256" height="256">
+
+  <!-- Background -->
+  <rect width="256" height="256" rx="48" fill="#12121e"/>
+
+  <!-- Left page -->
+  <path d="M44 80 C44 72 50 68 58 69 L118 74 L118 190 L58 194 C50 194 44 190 44 182 Z"
+        fill="#1e1e35" stroke="#c8c8e8" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Right page -->
+  <path d="M212 80 C212 72 206 68 198 69 L138 74 L138 190 L198 194 C206 194 212 190 212 182 Z"
+        fill="#1e1e35" stroke="#c8c8e8" stroke-width="5" stroke-linejoin="round"/>
+
+  <!-- Spine center line -->
+  <line x1="128" y1="74" x2="128" y2="190"
+        stroke="#c8c8e8" stroke-width="4" stroke-linecap="round"/>
+
+  <!-- Text lines — left page -->
+  <line x1="62" y1="104" x2="110" y2="104" stroke="#8888aa" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="62" y1="120" x2="110" y2="120" stroke="#8888aa" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="62" y1="136" x2="94"  y2="136" stroke="#8888aa" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- Text lines — right page -->
+  <line x1="146" y1="104" x2="194" y2="104" stroke="#8888aa" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="146" y1="120" x2="194" y2="120" stroke="#8888aa" stroke-width="3.5" stroke-linecap="round"/>
+  <line x1="146" y1="136" x2="178" y2="136" stroke="#8888aa" stroke-width="3.5" stroke-linecap="round"/>
+
+  <!-- Overlay bar (subtitle/lower-third indicator) -->
+  <rect x="44" y="206" width="168" height="10" rx="5" fill="#7c6cff" opacity="0.9"/>
+  <rect x="44" y="222" width="120" height="10" rx="5" fill="#7c6cff" opacity="0.5"/>
+
+</svg>

@@ -36,7 +36,7 @@
             "bundleId": "com.example.plugintemplate-for-obs"
         }
     },
-    "name": "obs-bible-verse-overlay",
+    "name": "bible-verse-overlay",
     "displayName": "Bible Verse Overlay",
     "version": "0.1.0",
     "author": "Dani Acosta",

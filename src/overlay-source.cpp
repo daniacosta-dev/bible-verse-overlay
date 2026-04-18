@@ -1,4 +1,5 @@
 #include "overlay-source.hpp"
+#include "i18n.hpp"
 
 #include <mutex>
 #include <string>
@@ -86,23 +87,24 @@ static void ensure_fade_effect()
 // Available bundled Google Fonts
 // ─────────────────────────────────────────────────────────────────────────────
 struct FontDef {
-	const char *label;
+	const char *label;    // español
+	const char *en_label; // english (nullptr = igual que label)
 	const char *family;
 	const char *filename; // nullptr = system font (no file)
 };
 
 static const FontDef FONTS[] = {
-	{"Georgia (predeterminado)", "Georgia",         nullptr},
-	{"Nunito",                   "Nunito",           "Nunito-Regular.ttf"},
-	{"Roboto",                   "Roboto",           "Roboto-Regular.ttf"},
-	{"Open Sans",                "Open Sans",        "OpenSans-Regular.ttf"},
-	{"Lato",                     "Lato",             "Lato-Regular.ttf"},
-	{"Montserrat",               "Montserrat",       "Montserrat-Regular.ttf"},
-	{"Poppins",                  "Poppins",          "Poppins-Regular.ttf"},
-	{"Oswald",                   "Oswald",           "Oswald-Regular.ttf"},
-	{"Raleway",                  "Raleway",          "Raleway-Regular.ttf"},
-	{"Playfair Display",         "Playfair Display", "PlayfairDisplay-Regular.ttf"},
-	{"Merriweather",             "Merriweather",     "Merriweather-Regular.ttf"},
+	{"Georgia (predeterminado)", "Georgia (default)", "Georgia",         nullptr},
+	{"Nunito",                   nullptr,             "Nunito",           "Nunito-Regular.ttf"},
+	{"Roboto",                   nullptr,             "Roboto",           "Roboto-Regular.ttf"},
+	{"Open Sans",                nullptr,             "Open Sans",        "OpenSans-Regular.ttf"},
+	{"Lato",                     nullptr,             "Lato",             "Lato-Regular.ttf"},
+	{"Montserrat",               nullptr,             "Montserrat",       "Montserrat-Regular.ttf"},
+	{"Poppins",                  nullptr,             "Poppins",          "Poppins-Regular.ttf"},
+	{"Oswald",                   nullptr,             "Oswald",           "Oswald-Regular.ttf"},
+	{"Raleway",                  nullptr,             "Raleway",          "Raleway-Regular.ttf"},
+	{"Playfair Display",         nullptr,             "Playfair Display", "PlayfairDisplay-Regular.ttf"},
+	{"Merriweather",             nullptr,             "Merriweather",     "Merriweather-Regular.ttf"},
 };
 
 // Maps FontDef::family → actual Qt-registered family name (resolved at load time)
@@ -346,7 +348,8 @@ static void overlay_update(void *data, obs_data_t *settings)
 
 struct PresetDef {
 	const char *id;
-	const char *label;
+	const char *label;    // español
+	const char *en_label; // english
 	int         fontSize;
 	long long   verseColor;
 	long long   refColor;
@@ -357,12 +360,12 @@ struct PresetDef {
 };
 
 static const PresetDef PRESETS[] = {
-	{"p_clasico",    "Iglesia Clásica",  38, abgr(255,255,255,255), abgr(255,255,224,138), abgr(145,  0,  0,  0), 0, 0, 0.4},
-	{"p_grande",     "Texto Grande",     54, abgr(255,255,255,255), abgr(255,255,255,255), abgr(191,  0,  0,  0), 0, 1, 0.3},
-	{"p_oscuro",     "Fondo Oscuro",     36, abgr(255,240,230,200), abgr(255,201,168, 76), abgr(224,  0,  0,  0), 0, 0, 0.4},
-	{"p_lower",      "Lower Third",      28, abgr(255,255,255,255), abgr(255,126,184,255), abgr(224, 10, 18, 38), 0, 0, 0.2},
-	{"p_centrado",   "Centrado",         42, abgr(255,255,255,255), abgr(170,255,255,255), abgr(128,  0,  0,  0), 1, 1, 0.5},
-	{"p_minimal",    "Minimal",          44, abgr(255,255,255,255), abgr(153,255,255,255), abgr(  0,  0,  0,  0), 0, 0, 0.4},
+	{"p_clasico",  "Iglesia Clásica", "Classic Church",    38, abgr(255,255,255,255), abgr(255,255,224,138), abgr(145,  0,  0,  0), 0, 0, 0.4},
+	{"p_grande",   "Texto Grande",    "Large Text",        54, abgr(255,255,255,255), abgr(255,255,255,255), abgr(191,  0,  0,  0), 0, 1, 0.3},
+	{"p_oscuro",   "Fondo Oscuro",    "Dark Background",   36, abgr(255,240,230,200), abgr(255,201,168, 76), abgr(224,  0,  0,  0), 0, 0, 0.4},
+	{"p_lower",    "Lower Third",     "Lower Third",       28, abgr(255,255,255,255), abgr(255,126,184,255), abgr(224, 10, 18, 38), 0, 0, 0.2},
+	{"p_centrado", "Centrado",        "Centered",          42, abgr(255,255,255,255), abgr(170,255,255,255), abgr(128,  0,  0,  0), 1, 1, 0.5},
+	{"p_minimal",  "Minimal",         "Minimal",           44, abgr(255,255,255,255), abgr(153,255,255,255), abgr(  0,  0,  0,  0), 0, 0, 0.4},
 };
 
 static bool preset_changed(obs_properties_t *, obs_property_t *,
@@ -394,44 +397,51 @@ static obs_properties_t *overlay_get_properties(void *data)
 	// Preset selector
 	obs_property_t *preset = obs_properties_add_list(props, "preset",
 		"Preset", OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
-	obs_property_list_add_string(preset, "— Aplicar preset —", "none");
+	obs_property_list_add_string(preset,
+		I18n::t("— Aplicar preset —", "— Apply preset —").toUtf8().constData(), "none");
 	for (const auto &p : PRESETS)
-		obs_property_list_add_string(preset, p.label, p.id);
+		obs_property_list_add_string(preset,
+			I18n::t(p.label, p.en_label).toUtf8().constData(), p.id);
 	obs_property_set_modified_callback(preset, preset_changed);
 
 	obs_property_t *fontProp = obs_properties_add_list(props, "font_family",
-		"Fuente", OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
+		I18n::t("Fuente", "Font").toUtf8().constData(),
+		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_STRING);
 	for (const auto &f : FONTS)
-		obs_property_list_add_string(fontProp, f.label, f.family);
+		obs_property_list_add_string(fontProp,
+			I18n::t(f.label, f.en_label ? f.en_label : f.label).toUtf8().constData(),
+			f.family);
 
 	obs_properties_add_int_slider(props, "font_size",
-		"Tamaño de fuente", 12, 72, 1);
+		I18n::t("Tamaño de fuente", "Font size").toUtf8().constData(), 12, 72, 1);
 
 	obs_properties_add_color_alpha(props, "verse_color",
-		"Color del versículo");
+		I18n::t("Color del versículo", "Verse color").toUtf8().constData());
 
 	obs_properties_add_color_alpha(props, "ref_color",
-		"Color de la referencia");
+		I18n::t("Color de la referencia", "Reference color").toUtf8().constData());
 
 	obs_properties_add_color_alpha(props, "bg_color",
-		"Color de fondo (con transparencia)");
+		I18n::t("Color de fondo (con transparencia)",
+			"Background color (with transparency)").toUtf8().constData());
 
 	obs_property_t *pos = obs_properties_add_list(props, "position",
-		"Posición vertical",
+		I18n::t("Posición vertical", "Vertical position").toUtf8().constData(),
 		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
-	obs_property_list_add_int(pos, "Abajo",  0);
-	obs_property_list_add_int(pos, "Centro", 1);
-	obs_property_list_add_int(pos, "Arriba", 2);
+	obs_property_list_add_int(pos, I18n::t("Abajo",  "Bottom").toUtf8().constData(), 0);
+	obs_property_list_add_int(pos, I18n::t("Centro", "Center").toUtf8().constData(), 1);
+	obs_property_list_add_int(pos, I18n::t("Arriba", "Top").toUtf8().constData(),    2);
 
 	obs_property_t *align = obs_properties_add_list(props, "text_align",
-		"Alineación del texto",
+		I18n::t("Alineación del texto", "Text alignment").toUtf8().constData(),
 		OBS_COMBO_TYPE_LIST, OBS_COMBO_FORMAT_INT);
-	obs_property_list_add_int(align, "Izquierda", 0);
-	obs_property_list_add_int(align, "Centrado",  1);
-	obs_property_list_add_int(align, "Derecha",   2);
+	obs_property_list_add_int(align, I18n::t("Izquierda", "Left").toUtf8().constData(),     0);
+	obs_property_list_add_int(align, I18n::t("Centrado",  "Centered").toUtf8().constData(), 1);
+	obs_property_list_add_int(align, I18n::t("Derecha",   "Right").toUtf8().constData(),    2);
 
 	obs_properties_add_float_slider(props, "fade_duration",
-		"Duración del fade (segundos)", 0.0, 2.0, 0.05);
+		I18n::t("Duración del fade (segundos)", "Fade duration (seconds)").toUtf8().constData(),
+		0.0, 2.0, 0.05);
 
 	return props;
 }

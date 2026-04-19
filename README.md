@@ -2,21 +2,23 @@
   <img src="src/assets/main.png" alt="Bible Verse Overlay" width="680" style="border-radius:12px"/>
 </p>
 
-# Bible Verse Overlay — OBS Plugin
+# Bible Verse Overlay: a third-party plugin for OBS
 
-An OBS Studio plugin to display Bible verses as an overlay in your streams or recordings, with a built-in control panel docked directly inside OBS.
+An third-party OBS Studio plugin to display Bible verses as an overlay in your streams or recordings, with a built-in control panel docked directly inside OBS.
+
+Note: We use AI to accelerate our workflow.
 
 ---
 
 ## Features
 
-- 📖 Full navigation by book, chapter, and verse
-- 👁️ Show and hide the verse on screen with one click
-- ⭐ Session list to save frequently used verses
-- ▶️ Quick playback from the saved session
-- 🌐 Interface in **English** or **Spanish** based on OBS language setting
-- 💾 Panel remembers its position and visibility between restarts
-- 🎨 Adapts to OBS color themes (dark, light, etc.)
+- Full navigation by book, chapter, and verse
+- Show and hide the verse on screen with one click
+- Session list to save frequently used verses
+- Quick playback from the saved session
+- Interface in **English** or **Spanish** based on OBS language setting
+- Panel remembers its position and visibility between restarts
+- Adapts to OBS color themes (dark, light, etc.)
 
 ---
 
@@ -87,13 +89,11 @@ The output `.dll` will be in `build_x64\RelWithDebInfo\`.
 
 ---
 
-## Credits
-
-Developed by **Dani Acosta**  
-[☕ Support on Ko-fi](https://ko-fi.com/daniacostadev)
-
----
-
 ## License
 
 GNU General Public License v2.0 — see [LICENSE](LICENSE)
+
+---
+
+Developed by **Dani Acosta**  
+[☕ Support on Ko-fi](https://ko-fi.com/daniacostadev)
